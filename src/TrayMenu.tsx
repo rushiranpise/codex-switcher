@@ -552,6 +552,16 @@ function TrayMenu() {
           Open Codex Switcher
         </button>
         <button
+          onClick={async () => {
+            await invokeBackend("open_codex_app").catch(() => {});
+            void invokeBackend("hide_tray_window");
+          }}
+          className="rounded-lg px-2 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          title="Launch the Codex desktop app"
+        >
+          Open Codex
+        </button>
+        <button
           onClick={() => void invokeBackend("quit_app")}
           className="rounded-lg px-2 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-red-400"
         >
