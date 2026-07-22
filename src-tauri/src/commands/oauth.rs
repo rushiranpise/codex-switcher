@@ -136,23 +136,23 @@ pub async fn complete_reauth(account_id: String) -> Result<AccountInfo, String> 
         .map_err(|e| e.to_string())?;
 
     // Extract the new tokens from the OAuth result.
-    let (id_token, access_token, refresh_token, chatgpt_account_id) =
-        match &fresh_account.auth_data {
-            AuthData::ChatGPT {
-                id_token,
-                access_token,
-                refresh_token,
-                account_id,
-            } => (
-                id_token.clone(),
-                access_token.clone(),
-                refresh_token.clone(),
-                account_id.clone(),
-            ),
-            AuthData::ApiKey { .. } => {
-                return Err("Re-auth returned an API key account unexpectedly".to_string())
-            }
-        };
+    let (id_token, access_token, refresh_token, chatgpt_account_id) = match &fresh_account.auth_data
+    {
+        AuthData::ChatGPT {
+            id_token,
+            access_token,
+            refresh_token,
+            account_id,
+        } => (
+            id_token.clone(),
+            access_token.clone(),
+            refresh_token.clone(),
+            account_id.clone(),
+        ),
+        AuthData::ApiKey { .. } => {
+            return Err("Re-auth returned an API key account unexpectedly".to_string())
+        }
+    };
 
     let claims = parse_chatgpt_id_token_claims(&id_token);
 

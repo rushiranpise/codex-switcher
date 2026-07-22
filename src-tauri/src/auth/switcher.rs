@@ -69,9 +69,11 @@ fn sync_tokens_from_auth_json(account: &StoredAccount) -> Result<StoredAccount> 
 
     // Only relevant for ChatGPT OAuth accounts.
     let (stored_refresh_token, stored_account_id) = match &account.auth_data {
-        AuthData::ChatGPT { refresh_token, account_id, .. } => {
-            (refresh_token.clone(), account_id.clone())
-        }
+        AuthData::ChatGPT {
+            refresh_token,
+            account_id,
+            ..
+        } => (refresh_token.clone(), account_id.clone()),
         AuthData::ApiKey { .. } => return Ok(account.clone()),
     };
 
@@ -86,7 +88,9 @@ fn sync_tokens_from_auth_json(account: &StoredAccount) -> Result<StoredAccount> 
     };
 
     // Only sync if the auth.json belongs to the same ChatGPT account.
-    let disk_account_id = disk_tokens.account_id.clone()
+    let disk_account_id = disk_tokens
+        .account_id
+        .clone()
         .or_else(|| parse_chatgpt_id_token_claims(&disk_tokens.id_token).account_id);
 
     let same_account = match (&stored_account_id, &disk_account_id) {
@@ -101,10 +105,11 @@ fn sync_tokens_from_auth_json(account: &StoredAccount) -> Result<StoredAccount> 
 
     // Tokens differ — auth.json is newer (Codex rotated them). Absorb them.
     if disk_tokens.refresh_token == stored_refresh_token
-        && disk_tokens.access_token == match &account.auth_data {
-            AuthData::ChatGPT { access_token, .. } => access_token.clone(),
-            _ => String::new(),
-        }
+        && disk_tokens.access_token
+            == match &account.auth_data {
+                AuthData::ChatGPT { access_token, .. } => access_token.clone(),
+                _ => String::new(),
+            }
     {
         // Tokens are identical — nothing to sync.
         return Ok(account.clone());

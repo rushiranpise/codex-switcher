@@ -145,10 +145,7 @@ fn enforce_single_instance_unix(app: &tauri::App) -> Result<(), Box<dyn std::err
     use std::os::unix::io::AsRawFd;
     use tauri::Manager;
 
-    let lock_path = app
-        .path()
-        .app_data_dir()?
-        .join("codex-switcher.lock");
+    let lock_path = app.path().app_data_dir()?.join("codex-switcher.lock");
 
     if let Some(parent) = lock_path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -162,9 +159,7 @@ fn enforce_single_instance_unix(app: &tauri::App) -> Result<(), Box<dyn std::err
 
     let _ = write!(file, "{}", std::process::id());
 
-    let locked = unsafe {
-        libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) == 0
-    };
+    let locked = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) == 0 };
 
     if !locked {
         println!("[App] Another instance is already running. Exiting.");
