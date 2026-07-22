@@ -14,11 +14,12 @@ use commands::{
     ack_close_behavior_prompt, add_account_from_file, cancel_login, check_codex_processes,
     complete_close_behavior, complete_login, delete_account, export_accounts_full_encrypted_file,
     export_accounts_slim_text, get_account_usage_stats, get_active_account_info,
-    get_dock_display_mode, get_masked_account_ids, get_usage, hide_tray_window,
-    import_accounts_full_encrypted_file, import_accounts_slim_text, kill_codex_processes,
-    list_accounts, open_main_window, quit_app, refresh_account_metadata,
+    get_dock_display_mode, get_masked_account_ids, get_startup_settings, get_usage,
+    hide_tray_window, import_accounts_full_encrypted_file, import_accounts_slim_text,
+    kill_codex_processes, list_accounts, open_main_window, quit_app, refresh_account_metadata,
     refresh_all_accounts_usage, rename_account, report_usage, set_dock_display_mode,
-    set_masked_account_ids, start_login, switch_account, warmup_account, warmup_all_accounts,
+    set_launch_at_login, set_masked_account_ids, set_start_minimized, start_login, switch_account,
+    warmup_account, warmup_all_accounts,
 };
 use tauri::Emitter;
 
@@ -28,6 +29,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -44,6 +49,14 @@ pub fn run() {
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
                 app_menu::setup(app.handle())?;
                 tray::setup(app.handle())?;
+
+                // Apply start-minimized: hide the main window on launch when set.
+                let settings = crate::auth::load_app_settings().unwrap_or_default();
+                if settings.start_minimized {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.hide();
+                    }
+                }
             }
             Ok(())
         })
@@ -107,6 +120,9 @@ pub fn run() {
             set_dock_display_mode,
             complete_close_behavior,
             ack_close_behavior_prompt,
+            get_startup_settings,
+            set_launch_at_login,
+            set_start_minimized,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
