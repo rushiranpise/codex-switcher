@@ -187,13 +187,12 @@ pub fn get_startup_settings() -> (bool, bool) {
 /// mechanism via tauri-plugin-autostart.
 #[tauri::command]
 pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
-    use tauri_plugin_autostart::ManagerExt;
+    use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 
-    let autostart = app.autostart_manager();
     if enabled {
-        autostart.enable().map_err(|e| e.to_string())?;
+        app.autostart_manager().enable().map_err(|e| e.to_string())?;
     } else {
-        autostart.disable().map_err(|e| e.to_string())?;
+        app.autostart_manager().disable().map_err(|e| e.to_string())?;
     }
 
     let mut settings = load_app_settings().unwrap_or_default();
