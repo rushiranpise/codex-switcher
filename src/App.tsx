@@ -235,6 +235,10 @@ function App() {
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [startMinimized, setStartMinimized] = useState(false);
   const [reAuthAccountId, setReAuthAccountId] = useState<string | null>(null);
+  const [openAfterSwitch, setOpenAfterSwitch] = useState<boolean>(() => {
+    try { return window.localStorage.getItem("codex-switcher-open-after-switch") === "true"; }
+    catch { return false; }
+  });
   const accountsRef = useRef(accounts);
   const autoWarmupAccountIdsRef = useRef(autoWarmupAccountIds);
   const autoWarmupLedgerRef = useRef(autoWarmupLedger);
@@ -503,6 +507,9 @@ function App() {
     try {
       setSwitchingId(accountId);
       await switchAccount(accountId);
+      if (openAfterSwitch && isTauriRuntime()) {
+        void invokeBackend("open_codex_app").catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to switch account:", err);
     } finally {
@@ -717,6 +724,9 @@ function App() {
       await switchAccount(accountId);
       setPendingTraySwitchAccountId(null);
       showWarmupToast("Switched account after force closing Codex.");
+      if (openAfterSwitch && isTauriRuntime()) {
+        void invokeBackend("open_codex_app").catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to switch account after force close:", err);
       setPendingTraySwitchAccountId(null);
@@ -1555,6 +1565,19 @@ function App() {
                             type="checkbox"
                             checked={startMinimized}
                             onChange={(e) => handleSetStartMinimized(e.target.checked)}
+                            className="h-4 w-4 accent-gray-900 dark:accent-gray-100"
+                          />
+                        </label>
+                        <label className="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-neutral-900">
+                          <span title="Launch Codex automatically after switching accounts">Open Codex after switch</span>
+                          <input
+                            type="checkbox"
+                            checked={openAfterSwitch}
+                            onChange={(e) => {
+                              const v = e.target.checked;
+                              setOpenAfterSwitch(v);
+                              try { window.localStorage.setItem("codex-switcher-open-after-switch", String(v)); } catch {}
+                            }}
                             className="h-4 w-4 accent-gray-900 dark:accent-gray-100"
                           />
                         </label>
