@@ -178,21 +178,35 @@ pub fn should_prompt_for_close_behavior() -> bool {
 
 /// Get both startup settings in one call.
 #[tauri::command]
-pub fn get_startup_settings() -> (bool, bool) {
-    let settings = load_app_settings().unwrap_or_default();
-    (settings.launch_at_login, settings.start_minimized)
+pub fn get_startup_settings(app: AppHandle) -> (bool, bool) {
+    use tauri_plugin_autostart::ManagerExt;
+
+    // Read live autostart state from OS rather than trusting settings.json,
+    // in case the user toggled it externally.
+    let launch_at_login = <AppHandle as ManagerExt<tauri::Wry>>::autostart_manager(&app)
+        .is_enabled()
+        .unwrap_or_else(|_| {
+            load_app_settings().unwrap_or_default().launch_at_login
+        });
+
+    let start_minimized = load_app_settings().unwrap_or_default().start_minimized;
+    (launch_at_login, start_minimized)
 }
 
 /// Set Launch at Login. Registers / unregisters the app with the OS autostart
 /// mechanism via tauri-plugin-autostart.
 #[tauri::command]
 pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
-    use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
+    use tauri_plugin_autostart::ManagerExt;
 
     if enabled {
-        app.autostart_manager().enable().map_err(|e| e.to_string())?;
+        <AppHandle as ManagerExt<tauri::Wry>>::autostart_manager(&app)
+            .enable()
+            .map_err(|e| e.to_string())?;
     } else {
-        app.autostart_manager().disable().map_err(|e| e.to_string())?;
+        <AppHandle as ManagerExt<tauri::Wry>>::autostart_manager(&app)
+            .disable()
+            .map_err(|e| e.to_string())?;
     }
 
     let mut settings = load_app_settings().unwrap_or_default();
