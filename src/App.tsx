@@ -490,6 +490,10 @@ function App() {
     // Check processes before switching
     const latestProcessInfo = await checkProcesses();
     if (latestProcessInfo && !latestProcessInfo.can_switch) {
+      // Codex is running — ask the user if they want to force-close it first,
+      // then switch. The confirm modal already handles this flow.
+      setPendingTraySwitchAccountId(accountId);
+      setForceCloseConfirmOpen(true);
       return;
     }
 
