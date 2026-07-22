@@ -157,35 +157,34 @@ fn enforce_single_instance_unix(app: &tauri::App) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-/// Windows single-instance enforcement using a named mutex.
+/// Windows single-instance enforcement using an exclusive lockfile.
+/// We open the file with `share_mode(0)` (no sharing), which prevents any
+/// second instance from opening the same file and signals it to exit.
 #[cfg(windows)]
 fn enforce_single_instance_windows() -> Result<(), Box<dyn std::error::Error>> {
-    use std::ffi::CString;
+    use std::os::windows::fs::OpenOptionsExt;
 
-    let mutex_name = CString::new("Local\\CodexSwitcher_SingleInstance").unwrap();
+    // TEMP dir is per-user on Windows, so this naturally scopes to the user.
+    let lock_path = std::env::temp_dir().join("codex-switcher.lock");
 
-    let handle = unsafe {
-        windows_sys::Win32::System::Threading::CreateMutexA(
-            std::ptr::null(),
-            1, // bInitialOwner = TRUE
-            mutex_name.as_ptr() as *const u8,
-        )
-    };
+    let result = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .share_mode(0) // FILE_SHARE_NONE — exclusive, no other process can open
+        .open(&lock_path);
 
-    if handle.is_null() {
-        // Could not create mutex — something went wrong, allow startup.
-        return Ok(());
+    match result {
+        Ok(file) => {
+            // We hold the exclusive lock. Leak the handle so it stays open
+            // (and locked) for the entire process lifetime.
+            std::mem::forget(file);
+            Ok(())
+        }
+        Err(_) => {
+            // Another instance has the file open exclusively.
+            println!("[App] Another instance is already running. Exiting.");
+            std::process::exit(0);
+        }
     }
-
-    let last_error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
-
-    // ERROR_ALREADY_EXISTS (183) means another instance owns the mutex.
-    if last_error == 183 {
-        println!("[App] Another instance is already running. Exiting.");
-        std::process::exit(0);
-    }
-
-    // Leak the handle so the mutex stays owned for the process lifetime.
-    std::mem::forget(handle);
-    Ok(())
 }
