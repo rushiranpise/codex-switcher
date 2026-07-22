@@ -232,6 +232,8 @@ function App() {
   const [closeBehaviorPromptOpen, setCloseBehaviorPromptOpen] = useState(false);
   const [closeBehaviorDontAskAgain, setCloseBehaviorDontAskAgain] = useState(false);
   const [isCompletingCloseBehavior, setIsCompletingCloseBehavior] = useState(false);
+  const [launchAtLogin, setLaunchAtLogin] = useState(false);
+  const [startMinimized, setStartMinimized] = useState(false);
   const accountsRef = useRef(accounts);
   const autoWarmupAccountIdsRef = useRef(autoWarmupAccountIds);
   const autoWarmupLedgerRef = useRef(autoWarmupLedger);
@@ -527,6 +529,33 @@ function App() {
       setTimeout(() => setRefreshSuccess(false), 2000);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Load startup settings on mount
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    invokeBackend<[boolean, boolean]>("get_startup_settings").then(([lal, sm]) => {
+      setLaunchAtLogin(lal);
+      setStartMinimized(sm);
+    }).catch(console.error);
+  }, []);
+
+  const handleSetLaunchAtLogin = async (enabled: boolean) => {
+    try {
+      await invokeBackend("set_launch_at_login", { enabled });
+      setLaunchAtLogin(enabled);
+    } catch (err) {
+      console.error("Failed to set launch at login:", err);
+    }
+  };
+
+  const handleSetStartMinimized = async (enabled: boolean) => {
+    try {
+      await invokeBackend("set_start_minimized", { enabled });
+      setStartMinimized(enabled);
+    } catch (err) {
+      console.error("Failed to set start minimized:", err);
     }
   };
 
@@ -1503,6 +1532,29 @@ function App() {
                     >
                       {isImportingFull ? "Importing..." : "Import Full Encrypted File"}
                     </button>
+                    {isTauriRuntime() && (
+                      <>
+                        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                        <label className="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-neutral-900">
+                          <span>Launch at Login</span>
+                          <input
+                            type="checkbox"
+                            checked={launchAtLogin}
+                            onChange={(e) => handleSetLaunchAtLogin(e.target.checked)}
+                            className="h-4 w-4 accent-gray-900 dark:accent-gray-100"
+                          />
+                        </label>
+                        <label className="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-neutral-900">
+                          <span>Start Minimized</span>
+                          <input
+                            type="checkbox"
+                            checked={startMinimized}
+                            onChange={(e) => handleSetStartMinimized(e.target.checked)}
+                            className="h-4 w-4 accent-gray-900 dark:accent-gray-100"
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -175,3 +175,38 @@ pub fn should_prompt_for_close_behavior() -> bool {
         false
     }
 }
+
+/// Get both startup settings in one call.
+#[tauri::command]
+pub fn get_startup_settings() -> (bool, bool) {
+    let settings = load_app_settings().unwrap_or_default();
+    (settings.launch_at_login, settings.start_minimized)
+}
+
+/// Set Launch at Login. Registers / unregisters the app with the OS autostart
+/// mechanism via tauri-plugin-autostart.
+#[tauri::command]
+pub fn set_launch_at_login(app: AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+
+    let autostart = app.autostart_manager();
+    if enabled {
+        autostart.enable().map_err(|e| e.to_string())?;
+    } else {
+        autostart.disable().map_err(|e| e.to_string())?;
+    }
+
+    let mut settings = load_app_settings().unwrap_or_default();
+    settings.launch_at_login = enabled;
+    save_app_settings(&settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Set Start Minimized. Persisted to settings.json; applied on the next launch.
+#[tauri::command]
+pub fn set_start_minimized(enabled: bool) -> Result<(), String> {
+    let mut settings = load_app_settings().unwrap_or_default();
+    settings.start_minimized = enabled;
+    save_app_settings(&settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
