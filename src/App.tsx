@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAccounts } from "./hooks/useAccounts";
 import { useForceCloseCodexProcesses } from "./hooks/useForceCloseCodexProcesses";
-import { AccountCard, AddAccountModal, UpdateChecker } from "./components";
+import { AccountCard, AddAccountModal, ReAuthModal, UpdateChecker } from "./components";
 import type { AccountWithUsage, CodexProcessInfo, DockDisplayMode, UsageInfo } from "./types";
 import {
   exportFullBackupFile,
@@ -234,6 +234,7 @@ function App() {
   const [isCompletingCloseBehavior, setIsCompletingCloseBehavior] = useState(false);
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [startMinimized, setStartMinimized] = useState(false);
+  const [reAuthAccountId, setReAuthAccountId] = useState<string | null>(null);
   const accountsRef = useRef(accounts);
   const autoWarmupAccountIdsRef = useRef(autoWarmupAccountIds);
   const autoWarmupLedgerRef = useRef(autoWarmupLedger);
@@ -1616,6 +1617,7 @@ function App() {
                     refreshSingleUsage(activeAccount.id, { refreshMetadata: true })
                   }
                   onRename={(newName) => renameAccount(activeAccount.id, newName)}
+                  onReAuth={activeAccount.auth_mode === "chat_g_p_t" ? () => setReAuthAccountId(activeAccount.id) : undefined}
                   switching={switchingId === activeAccount.id}
                   switchDisabled={hasRunningProcesses ?? false}
                   warmingUp={
@@ -1708,6 +1710,7 @@ function App() {
                         refreshSingleUsage(account.id, { refreshMetadata: true })
                       }
                       onRename={(newName) => renameAccount(account.id, newName)}
+                      onReAuth={account.auth_mode === "chat_g_p_t" ? () => setReAuthAccountId(account.id) : undefined}
                       switching={switchingId === account.id}
                       switchDisabled={hasRunningProcesses ?? false}
                       warmingUp={
@@ -1868,6 +1871,22 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Re-Auth Modal */}
+      {reAuthAccountId && (() => {
+        const account = accounts.find((a) => a.id === reAuthAccountId);
+        if (!account) return null;
+        return (
+          <ReAuthModal
+            account={account}
+            onClose={() => setReAuthAccountId(null)}
+            onSuccess={async () => {
+              setReAuthAccountId(null);
+              await refreshSingleUsage(reAuthAccountId, { refreshMetadata: true });
+            }}
+          />
+        );
+      })()}
 
       {/* Add Account Modal */}
       <AddAccountModal
