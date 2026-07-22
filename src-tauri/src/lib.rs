@@ -44,6 +44,7 @@ pub fn run() {
                 // Apply start-minimized: hide the main window on launch when set.
                 let settings = crate::auth::load_app_settings().unwrap_or_default();
                 if settings.start_minimized {
+                    use tauri::Manager;
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.hide();
                     }
