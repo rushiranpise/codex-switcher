@@ -31,6 +31,15 @@ pub fn run() {
         .setup(|app| {
             #[cfg(desktop)]
             {
+                // Enforce single instance: if another copy is already running,
+                // exit immediately. This prevents concurrent token refreshes
+                // across multiple instances from causing refresh_token_reused.
+                #[cfg(unix)]
+                enforce_single_instance_unix(app)?;
+
+                #[cfg(windows)]
+                enforce_single_instance_windows()?;
+
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
                 app_menu::setup(app.handle())?;
@@ -107,4 +116,76 @@ pub fn run() {
                 commands::restore_main_window(_app);
             }
         });
+}
+
+/// Unix single-instance enforcement using flock(2) on a lock file.
+/// The lock is held for the entire process lifetime via a leaked file descriptor.
+#[cfg(unix)]
+fn enforce_single_instance_unix(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::Write;
+    use std::os::unix::io::AsRawFd;
+    use tauri::Manager;
+
+    let lock_path = app
+        .path()
+        .app_data_dir()?
+        .join("codex-switcher.lock");
+
+    if let Some(parent) = lock_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&lock_path)?;
+
+    let _ = write!(file, "{}", std::process::id());
+
+    let locked = unsafe {
+        libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) == 0
+    };
+
+    if !locked {
+        println!("[App] Another instance is already running. Exiting.");
+        std::process::exit(0);
+    }
+
+    // Leak the file so the fd stays open (and the lock held) for the process lifetime.
+    std::mem::forget(file);
+    Ok(())
+}
+
+/// Windows single-instance enforcement using a named mutex.
+#[cfg(windows)]
+fn enforce_single_instance_windows() -> Result<(), Box<dyn std::error::Error>> {
+    use std::ffi::CString;
+
+    let mutex_name = CString::new("Local\\CodexSwitcher_SingleInstance").unwrap();
+
+    let handle = unsafe {
+        windows_sys::Win32::System::Threading::CreateMutexA(
+            std::ptr::null(),
+            1, // bInitialOwner = TRUE
+            mutex_name.as_ptr() as *const u8,
+        )
+    };
+
+    if handle.is_null() {
+        // Could not create mutex — something went wrong, allow startup.
+        return Ok(());
+    }
+
+    let last_error = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+
+    // ERROR_ALREADY_EXISTS (183) means another instance owns the mutex.
+    if last_error == 183 {
+        println!("[App] Another instance is already running. Exiting.");
+        std::process::exit(0);
+    }
+
+    // Leak the handle so the mutex stays owned for the process lifetime.
+    std::mem::forget(handle);
+    Ok(())
 }
