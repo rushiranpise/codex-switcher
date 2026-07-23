@@ -21,3 +21,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Kiro IDE local tooling — not part of the project
+.kiro/
