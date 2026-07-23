@@ -191,7 +191,13 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, store: &AccountsStore) -> tauri::R
                 .build(app)?,
         )?;
     } else {
-        for account in &store.accounts {
+        // Pin the active account at the top, then the rest in storage order.
+        let mut sorted = store.accounts.iter().collect::<Vec<_>>();
+        sorted.sort_by_key(|a| {
+            if store.active_account_id.as_deref() == Some(&a.id) { 0 } else { 1 }
+        });
+
+        for account in sorted {
             let label = format!("{}{}", account.name, usage_suffix(&account.id));
             let item =
                 CheckMenuItemBuilder::with_id(account_menu_id(&account.id), menu_label(&label))
