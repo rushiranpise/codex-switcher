@@ -471,14 +471,14 @@ export function AccountCard({
           <button
             onClick={onSwitch}
             disabled={switching}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap ${
               switchDisabled
                 ? "bg-amber-600 hover:bg-amber-700 text-white"
                 : "bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 text-white dark:text-gray-900"
             }`}
-            title={switchDisabled ? "Codex is running — click to force-close and switch" : undefined}
+            title={switchDisabled ? "Kiro is running — click to force-close and switch" : undefined}
           >
-            {switching ? "Switching..." : switchDisabled ? "⚠ Switch & Close Codex" : "Switch"}
+            {switching ? "Switching..." : switchDisabled ? "⚠ Switch & Close" : "Switch"}
           </button>
         )}
         <button
