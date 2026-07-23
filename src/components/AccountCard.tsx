@@ -476,7 +476,7 @@ export function AccountCard({
                 ? "bg-amber-600 hover:bg-amber-700 text-white"
                 : "bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 text-white dark:text-gray-900"
             }`}
-            title={switchDisabled ? "Kiro is running — click to force-close and switch" : undefined}
+            title={switchDisabled ? "Codex is running — click to force-close and switch" : undefined}
           >
             {switching ? "Switching..." : switchDisabled ? "⚠ Switch & Close" : "Switch"}
           </button>
