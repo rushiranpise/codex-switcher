@@ -523,8 +523,23 @@ function App() {
     setRefreshSuccess(false);
     try {
       await refreshUsage(undefined, { refreshMetadata: true });
-      setRefreshSuccess(true);
-      setTimeout(() => setRefreshSuccess(false), 2000);
+      // Count how many had errors after refresh
+      const failed = accounts.filter((a) => a.usage?.error).length;
+      if (failed > 0) {
+        const total = accounts.length;
+        const ok = total - failed;
+        const names = accounts
+          .filter((a) => a.usage?.error)
+          .map((a) => `${a.name}: ${a.usage!.error}`)
+          .join("\n");
+        showWarmupToast(
+          `Refreshed ${ok}/${total}. ${failed} failed:\n${names}`,
+          true
+        );
+      } else {
+        setRefreshSuccess(true);
+        setTimeout(() => setRefreshSuccess(false), 2000);
+      }
     } finally {
       setIsRefreshing(false);
     }
