@@ -91,28 +91,27 @@ pub async fn warmup_all_accounts() -> Result<WarmupSummary, String> {
     let concurrency = total_accounts.min(10).max(1);
 
     // Collect (account_id, account_name, Option<error>)
-    let results: Vec<(String, String, Option<String>)> =
-        stream::iter(store.accounts.into_iter())
-            .map(|account| async move {
-                let id = account.id.clone();
-                let name = account.name.clone();
-                match send_warmup(&account).await {
-                    Ok(()) => (id, name, None),
-                    Err(e) => {
-                        // Truncate long error messages for the toast
-                        let msg = e.to_string();
-                        let short = if msg.len() > 120 {
-                            format!("{}…", &msg[..120])
-                        } else {
-                            msg
-                        };
-                        (id, name, Some(short))
-                    }
+    let results: Vec<(String, String, Option<String>)> = stream::iter(store.accounts.into_iter())
+        .map(|account| async move {
+            let id = account.id.clone();
+            let name = account.name.clone();
+            match send_warmup(&account).await {
+                Ok(()) => (id, name, None),
+                Err(e) => {
+                    // Truncate long error messages for the toast
+                    let msg = e.to_string();
+                    let short = if msg.len() > 120 {
+                        format!("{}…", &msg[..120])
+                    } else {
+                        msg
+                    };
+                    (id, name, Some(short))
                 }
-            })
-            .buffer_unordered(concurrency)
-            .collect()
-            .await;
+            }
+        })
+        .buffer_unordered(concurrency)
+        .collect()
+        .await;
 
     let mut failed_account_ids = Vec::new();
     let mut failed_account_errors = Vec::new();
