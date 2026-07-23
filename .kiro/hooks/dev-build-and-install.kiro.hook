@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Dev: fmt → build → install",
+  "description": "On agentStop while on dev: runs cargo fmt --check, builds the app, and installs the NSIS exe silently. Only runs on dev branch.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -NoProfile -NonInteractive -Command \"& { $env:PATH = $env:PATH + ';' + $env:USERPROFILE + '\\.cargo\\bin;' + $env:LOCALAPPDATA + '\\pnpm\\bin'; Set-Location 'c:\\Users\\rushi\\Downloads\\codex-switcher'; $branch = (git branch --show-current 2>$null); if ($branch -ne 'dev') { exit 0 }; cargo fmt --manifest-path src-tauri/Cargo.toml -- --check 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Output 'FMT FAILED - run cargo fmt first'; exit 1 }; Write-Output 'fmt OK - starting build...'; pnpm tauri:win build 2>&1 | Select-String -Pattern 'Finished|error\\[|Error ' | ForEach-Object { $_.Line }; $exe = 'src-tauri\\target\\release\\bundle\\nsis\\Codex Switcher_0.2.8_x64-setup.exe'; if (Test-Path $exe) { Start-Process $exe -ArgumentList '/S' -Wait; Write-Output 'Installed OK' } }\"",
+    "timeout": 0
+  }
+}
