@@ -532,7 +532,9 @@ function App() {
 
   const showWarmupToast = useCallback((message: string, isError = false) => {
     setWarmupToast({ message, isError });
-    setTimeout(() => setWarmupToast(null), 2500);
+    // Give error toasts with multi-line details longer to read
+    const duration = isError && message.includes("\n") ? 8000 : 2500;
+    setTimeout(() => setWarmupToast(null), duration);
   }, []);
 
   const formatWarmupError = useCallback((err: unknown) => {
@@ -742,8 +744,12 @@ function App() {
           }`
         );
       } else {
+        // Build a readable failure summary: "name: reason" per failed account
+        const details = (summary.failed_account_errors ?? [])
+          .map(([name, err]) => `• ${name}: ${err}`)
+          .join("\n");
         showWarmupToast(
-          `Warmed ${summary.warmed_accounts}/${summary.total_accounts}. Failed: ${summary.failed_account_ids.length}`,
+          `Warmed ${summary.warmed_accounts}/${summary.total_accounts}. ${summary.failed_account_ids.length} failed:\n${details}`,
           true
         );
       }
@@ -1690,7 +1696,7 @@ function App() {
       {/* Warm-up Toast */}
       {warmupToast && (
         <div
-          className={`fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg text-sm ${
+          className={`fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm whitespace-pre-line ${
             warmupToast.isError
               ? "bg-red-600 text-white"
               : "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700"

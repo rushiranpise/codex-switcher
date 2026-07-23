@@ -349,6 +349,9 @@ pub struct WarmupSummary {
     pub warmed_accounts: usize,
     /// Account IDs whose warm-up request failed
     pub failed_account_ids: Vec<String>,
+    /// Per-failure details: (account_name, error_message)
+    #[serde(default)]
+    pub failed_account_errors: Vec<(String, String)>,
 }
 
 /// Import summary for account config import operations.
